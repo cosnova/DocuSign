@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocuSign Pre-requisite Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 18px;
+        }
+        .field-group {
+            margin-bottom: 15px;
+        }
+        .field-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .dynamic-fields {
+            margin-bottom: 15px;
+        }
+        #confirmationPage {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>DocuSign Pre-requisite Form</h1>
+    <form id="dynamicForm">
+        <!-- Title -->
+        <div class="field-group">
+            <label for="title">Document Title</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        <!-- Department -->
+        <div class="field-group">
+            <label for="department">Department</label>
+            <select id="department" name="department" required>
+                <option value="" disabled selected>Select Department</option>
+                <option value="Legal">Legal</option>
+                <option value="HR">HR</option>
+                <option value="IT">IT</option>
+            </select>
+        </div>
+        <!-- External Contacts -->
+        <div class="field-group">
+            <label>External Email and Contact Numbers</label>
+            <div id="externalContacts" class="dynamic-fields">
+                <div class="external-contact">
+                    <input type="email" name="externalEmail[]" placeholder="External Email" required>
+                    <input type="text" name="externalContact[]" placeholder="External Contact Number" required>
+                </div>
+            </div>
+            <button type="button" onclick="addExternalContact()">Add Another External Contact</button>
+        </div>
+        <!-- Internal Contacts -->
+        <div class="field-group">
+            <label>Internal Email and Contact Numbers</label>
+            <div id="internalContacts" class="dynamic-fields">
+                <div class="internal-contact">
+                    <input type="email" name="internalEmail[]" placeholder="Internal Email" required>
+                    <input type="text" name="internalContact[]" placeholder="Internal Contact Number" required>
+                </div>
+            </div>
+            <button type="button" onclick="addInternalContact()">Add Another Internal Contact</button>
+        </div>
+        <!-- Upload Documents -->
+        <div class="field-group">
+            <label for="documents">Attach Documents</label>
+            <input type="file" id="documents" name="documents" multiple>
+        </div>
+        <!-- Initial Signature -->
+        <div class="field-group">
+            <label for="initialSignature">Initial Signature</label>
+            <input type="text" id="initialSignature" name="initialSignature" required>
+        </div>
+        <!-- Submit -->
+        <button type="button" onclick="displayConfirmationPage()">Submit</button>
+    </form>
+
+    <!-- Confirmation Page -->
+    <div id="confirmationPage">
+        <h2>Confirmation</h2>
+        <div id="confirmationDetails"></div>
+        <button type="button" onclick="submitForm()">Confirm and Send Email</button>
+        <button type="button" onclick="goBack()">Go Back</button>
+    </div>
+
+    <script>
+        function addExternalContact() {
+            const container = document.getElementById('externalContacts');
+            const newField = document.createElement('div');
+            newField.classList.add('external-contact');
+            newField.innerHTML = `
+                <input type="email" name="externalEmail[]" placeholder="External Email" required>
+                <input type="text" name="externalContact[]" placeholder="External Contact Number" required>
+                <button type="button" onclick="removeContact(this)">Remove</button>
+            `;
+            container.appendChild(newField);
+        }
+
+        function addInternalContact() {
+            const container = document.getElementById('internalContacts');
+            const newField = document.createElement('div');
+            newField.classList.add('internal-contact');
+            newField.innerHTML = `
+                <input type="email" name="internalEmail[]" placeholder="Internal Email" required>
+                <input type="text" name="internalContact[]" placeholder="Internal Contact Number" required>
+                <button type="button" onclick="removeContact(this)">Remove</button>
+            `;
+            container.appendChild(newField);
+        }
+
+        function removeContact(button) {
+            const fieldGroup = button.parentNode;
+            fieldGroup.parentNode.removeChild(fieldGroup);
+        }
+
+        function displayConfirmationPage() {
+            const form = document.getElementById('dynamicForm');
+            const confirmationPage = document.getElementById('confirmationPage');
+            const confirmationDetails = document.getElementById('confirmationDetails');
+
+            // Collect and display form data
+            let details = '<h3>Form Details</h3>';
+            details += `<p><strong>Title:</strong> ${form.title.value}</p>`;
+            details += `<p><strong>Department:</strong> ${form.department.value}</p>`;
+
+            // Display external contacts
+            details += '<p><strong>External Contacts:</strong></p>';
+            const externalEmails = form.querySelectorAll('input[name="externalEmail[]"]');
+            const externalContacts = form.querySelectorAll('input[name="externalContact[]"]');
+            externalEmails.forEach((email, index) => {
+                details += `<p>Email: ${email.value}, Contact: ${externalContacts[index].value}</p>`;
+            });
+
+            // Display internal contacts
+            details += '<p><strong>Internal Contacts:</strong></p>';
+            const internalEmails = form.querySelectorAll('input[name="internalEmail[]"]');
+            const internalContacts = form.querySelectorAll('input[name="internalContact[]"]');
+            internalEmails.forEach((email, index) => {
+                details += `<p>Email: ${email.value}, Contact: ${internalContacts[index].value}</p>`;
+            });
+
+            // Display initial signature
+            details += `<p><strong>Initial Signature:</strong> ${form.initialSignature.value}</p>`;
+
+            // Display attached documents
+            const documents = form.documents.files;
+            if (documents.length > 0) {
+                details += `<p><strong>Attached Documents:</strong> ${Array.from(documents).map(file => file.name).join(', ')}</p>`;
+            } else {
+                details += `<p><strong>Attached Documents:</strong> None</p>`;
+            }
+
+            confirmationDetails.innerHTML = details;
+
+            // Show confirmation page
+            form.style.display = 'none';
+            confirmationPage.style.display = 'block';
+        }
+
+        function goBack() {
+            document.getElementById('confirmationPage').style.display = 'none';
+            document.getElementById('dynamicForm').style.display = 'block';
+        }
+
+        function submitForm() {
+            const department = document.getElementById('department').value;
+            let email = '';
+
+            if (department === 'Legal' || department === 'HR') {
+                email = 'c.miranda@cosnova.com';
+            } else if (department === 'IT') {
+                email = 'a.rehbein@cosnova.com';
+            }
+
+            alert(`The form has been submitted to: ${email}`);
+
+            // Add backend integration here for submitting the form
+        }
+    </script>
+</body>
+</html>
